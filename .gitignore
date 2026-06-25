@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+.vercel
+# config.js is generated at build time from env vars — never commit real values.
+# The committed config.js holds only empty placeholders (safe).
