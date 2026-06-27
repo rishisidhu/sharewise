@@ -12,6 +12,7 @@
 <title>Sharewise</title>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
     --plum:#3D2645; --plum2:#5A3B66; --gold:#C9A227; --gold-deep:#A8851A;
@@ -114,6 +115,7 @@
   .muted{color:var(--muted); font-size:13px;}
   .center{text-align:center;}
   .hidden{display:none !important;}
+  .chartbox{position:relative; height:240px;}
 
   .shim{background:linear-gradient(90deg,#eee 25%,#f5f5f5 37%,#eee 63%); background-size:400% 100%; animation:sh 1.2s infinite; border-radius:8px; height:14px;}
   @keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
@@ -276,6 +278,13 @@
     }catch(e){ body.innerHTML = '<div class="card center muted">Network error loading insights.</div>'; }
   }
 
+  let _charts = [];
+  function destroyCharts(){ _charts.forEach(c=>{ try{c.destroy();}catch(e){} }); _charts = []; }
+
+  // palette for categories (stable-ish by index)
+  const CHART_COLORS = ["#7C9A6B","#C9622E","#D4A017","#B5739E","#5A6B8C","#6B8E9E","#8C7B5A","#A8556B","#9B6B9E","#C97C9B","#7B8C9E","#5A8C7B","#8C8C8C"];
+  const PLUM="#3D2645", GOLD="#C9A227";
+
   function renderInsights(d){
     const s = d.summary || {};
     const youOwe = Number(s["settle.you_owe"]||0);
@@ -283,15 +292,6 @@
     if(Math.abs(youOwe) < 1) settleHtml = '<div class="v">All square \uD83E\uDD1D</div>';
     else if(youOwe > 0) settleHtml = '<div class="v">You owe Wife <b>'+inr(youOwe)+'</b></div>';
     else settleHtml = '<div class="v">Wife owes you <b>'+inr(-youOwe)+'</b></div>';
-
-    const cats = (d.catMonth||[]).filter(c=>c.amount>0).sort((a,b)=>b.amount-a.amount);
-    const maxCat = cats.length ? cats[0].amount : 1;
-    const catBars = cats.length ? cats.map(c=>'<div class="bar-row"><div class="top"><span>'+esc(c.name)+'</span><span class="amt">'+inr(c.amount)+'</span></div><div class="track"><div class="fill" style="width:'+Math.max(4,(c.amount/maxCat)*100)+'%"></div></div></div>').join("")
-      : '<p class="muted">No spending logged this month yet.</p>';
-
-    const tr = d.trend||[];
-    const maxTr = Math.max(1, ...tr.map(t=>t.amount));
-    const trendHtml = tr.map(t=>'<div class="col"><div class="t">'+inr(t.amount)+'</div><div class="b" style="height:'+((t.amount/maxTr)*90)+'px"></div><div class="m">'+((t.month||"").slice(2))+'</div></div>').join("");
 
     const rec = d.recent||[];
     const recHtml = rec.length ? rec.map(e=>'<div class="tx"><div class="dot"></div><div class="m"><div class="t">'+esc(e.item)+(e.impulse?' <span style="color:#B5739E;font-size:10px">\u00B7 impulse</span>':'')+'</div><div class="s">'+e.date+' \u00B7 '+esc(e.category)+' \u00B7 '+(e.paidBy===e.split?e.paidBy:e.paidBy+"\u2192"+e.split)+'</div></div><div class="a">'+inr(e.amount)+'</div></div>').join("")
@@ -309,9 +309,128 @@
         '<div class="p"><div class="n">You</div><div class="sub">Paid</div><div class="val paid">'+inr(s["paid.You"])+'</div><div class="sub">Fair share</div><div class="val fair">'+inr(s["borne.You"])+'</div></div>'+
         '<div class="p"><div class="n">Wife</div><div class="sub">Paid</div><div class="val paid">'+inr(s["paid.Wife"])+'</div><div class="sub">Fair share</div><div class="val fair">'+inr(s["borne.Wife"])+'</div></div>'+
       '</div>'+
-      '<div class="card"><h2>This month by category</h2>'+catBars+'</div>'+
-      '<div class="card"><h2>Last 6 months</h2><div class="trend">'+trendHtml+'</div></div>'+
+      '<div class="card"><h2>This month by category</h2><div class="chartbox"><canvas id="chCat"></canvas></div></div>'+
+      '<div class="card"><h2>Monthly spend &amp; mix (6 mo)</h2><div class="chartbox"><canvas id="chStack"></canvas></div></div>'+
+      '<div class="card"><h2>Top category each month</h2><div class="chartbox"><canvas id="chWin"></canvas></div></div>'+
+      '<div class="card"><h2>Impulse vs planned (6 mo)</h2><div class="chartbox"><canvas id="chImp"></canvas></div></div>'+
       '<div class="card"><h2>Recent transactions</h2>'+recHtml+'</div>';
+
+    // defer chart drawing until canvases are in the DOM
+    setTimeout(function(){ renderCharts(d); }, 0);
+  }
+
+  function renderCharts(d, _tries){
+    _tries = _tries || 0;
+    if(typeof Chart === "undefined"){
+      if(_tries < 25){ return void setTimeout(()=>renderCharts(d, _tries+1), 200); } // wait up to ~5s
+      document.querySelectorAll(".chartbox").forEach(box=>{
+        const p=document.createElement("p"); p.className="muted center";
+        p.style.margin="20px 0"; p.textContent="Charts unavailable (offline).";
+        box.innerHTML=""; box.appendChild(p);
+      });
+      return;
+    }
+    destroyCharts();
+    Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.color = "#5A3B66";
+    const rupee = (v)=>"\u20B9"+Math.round(v).toLocaleString("en-IN");
+    const moLabel = (m)=>(m||"").slice(2); // "26-06"
+
+    // 1) This month by category (horizontal bars, sorted desc)
+    const cats = (d.catMonth||[]).filter(c=>c.amount>0).sort((a,b)=>b.amount-a.amount);
+    const cEl = document.getElementById("chCat");
+    if(cEl){
+      if(!cats.length){ noData(cEl, "No spending this month yet."); }
+      else _charts.push(new Chart(cEl, {
+        type:"bar",
+        data:{ labels:cats.map(c=>c.name),
+          datasets:[{ data:cats.map(c=>c.amount),
+            backgroundColor:cats.map((c,i)=>CHART_COLORS[i%CHART_COLORS.length]),
+            borderRadius:6 }] },
+        options:{ indexAxis:"y", responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false},
+            tooltip:{callbacks:{label:(x)=>rupee(x.raw)}} },
+          scales:{ x:{ ticks:{callback:(v)=>rupee(v)}, grid:{color:"#EDE6DB"} },
+                   y:{ grid:{display:false} } } }
+      }));
+    }
+
+    // 2) Stacked monthly bars (categories) + total trend line overlay
+    const st = d.stacked || {months:[],categories:[],data:[]};
+    const sEl = document.getElementById("chStack");
+    if(sEl){
+      const months = st.months||[];
+      const totals = months.map((_,j)=> (st.data||[]).reduce((sum,row)=>sum+(row[j]||0),0));
+      const ds = (st.categories||[]).map((cat,i)=>({
+        label:cat, data:(st.data[i]||[]),
+        backgroundColor:CHART_COLORS[i%CHART_COLORS.length], stack:"s", borderWidth:0
+      })).filter(x=>x.data.some(v=>v>0)); // only categories with any spend
+      ds.push({ type:"line", label:"Total", data:totals, borderColor:PLUM,
+        backgroundColor:PLUM, borderWidth:2, pointRadius:3, pointBackgroundColor:GOLD,
+        tension:0.3, stack:"_none", order:0 });
+      if(totals.every(v=>v===0)){ noData(sEl,"No data yet."); }
+      else _charts.push(new Chart(sEl, {
+        data:{ labels:months.map(moLabel), datasets:ds },
+        options:{ responsive:true, maintainAspectRatio:false,
+          interaction:{mode:"index",intersect:false},
+          plugins:{ legend:{display:true, labels:{boxWidth:10, font:{size:10}}},
+            tooltip:{callbacks:{label:(x)=>x.dataset.label+": "+rupee(x.raw)}} },
+          scales:{ x:{ stacked:true, grid:{display:false} },
+                   y:{ stacked:true, ticks:{callback:(v)=>rupee(v)}, grid:{color:"#EDE6DB"} } } }
+      }));
+    }
+
+    // 3) Top category each month (bar; height=amount, label shows category)
+    const win = d.winner||[];
+    const wEl = document.getElementById("chWin");
+    if(wEl){
+      if(win.every(w=>!w.amount)){ noData(wEl,"No data yet."); }
+      else _charts.push(new Chart(wEl, {
+        type:"bar",
+        data:{ labels:win.map(w=>moLabel(w.month)),
+          datasets:[{ data:win.map(w=>w.amount),
+            backgroundColor:win.map((w,i)=>CHART_COLORS[i%CHART_COLORS.length]),
+            borderRadius:6 }] },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false},
+            tooltip:{callbacks:{
+              title:(x)=>win[x[0].dataIndex].month,
+              label:(x)=>{ const w=win[x.dataIndex]; return (w.name||"\u2014")+": "+rupee(w.raw||w.amount); } }} },
+          scales:{ x:{grid:{display:false}}, y:{ticks:{callback:(v)=>rupee(v)}, grid:{color:"#EDE6DB"}} } }
+      }));
+      // category-name annotations under bars
+      const cap = document.createElement("div");
+      cap.style.cssText="display:flex;justify-content:space-around;font-size:10px;color:#9b8f86;margin-top:6px";
+      cap.innerHTML = win.map(w=>'<span style="flex:1;text-align:center">'+(w.amount?esc(w.name):"\u2014")+'</span>').join("");
+      wEl.parentElement.appendChild(cap);
+    }
+
+    // 4) Impulse vs planned per month (stacked bars)
+    const imp = d.impulse||[];
+    const iEl = document.getElementById("chImp");
+    if(iEl){
+      if(imp.every(m=>!m.impulse && !m.planned)){ noData(iEl,"No data yet."); }
+      else _charts.push(new Chart(iEl, {
+        type:"bar",
+        data:{ labels:imp.map(m=>moLabel(m.month)),
+          datasets:[
+            { label:"Impulse", data:imp.map(m=>m.impulse), backgroundColor:"#B5739E", stack:"s", borderRadius:4 },
+            { label:"Planned", data:imp.map(m=>m.planned), backgroundColor:"#7C9A6B", stack:"s", borderRadius:4 }
+          ] },
+        options:{ responsive:true, maintainAspectRatio:false,
+          interaction:{mode:"index",intersect:false},
+          plugins:{ legend:{display:true, labels:{boxWidth:10}},
+            tooltip:{callbacks:{label:(x)=>x.dataset.label+": "+rupee(x.raw)}} },
+          scales:{ x:{stacked:true, grid:{display:false}},
+                   y:{stacked:true, ticks:{callback:(v)=>rupee(v)}, grid:{color:"#EDE6DB"}} } }
+      }));
+    }
+  }
+
+  function noData(canvas, msg){
+    const p = document.createElement("p"); p.className="muted center"; p.textContent=msg;
+    p.style.margin="20px 0"; canvas.parentElement.replaceChild(p, canvas);
   }
 
   function esc(s){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
