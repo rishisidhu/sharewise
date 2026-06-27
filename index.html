@@ -386,24 +386,27 @@
     const wEl = document.getElementById("chWin");
     if(wEl){
       if(win.every(w=>!w.amount)){ noData(wEl,"No data yet."); }
-      else _charts.push(new Chart(wEl, {
-        type:"bar",
-        data:{ labels:win.map(w=>moLabel(w.month)),
-          datasets:[{ data:win.map(w=>w.amount),
-            backgroundColor:win.map((w,i)=>CHART_COLORS[i%CHART_COLORS.length]),
-            borderRadius:6 }] },
-        options:{ responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{display:false},
-            tooltip:{callbacks:{
-              title:(x)=>win[x[0].dataIndex].month,
-              label:(x)=>{ const w=win[x.dataIndex]; return (w.name||"\u2014")+": "+rupee(w.raw||w.amount); } }} },
-          scales:{ x:{grid:{display:false}}, y:{ticks:{callback:(v)=>rupee(v)}, grid:{color:"#EDE6DB"}} } }
-      }));
-      // category-name annotations under bars
-      const cap = document.createElement("div");
-      cap.style.cssText="display:flex;justify-content:space-around;font-size:10px;color:#9b8f86;margin-top:6px";
-      cap.innerHTML = win.map(w=>'<span style="flex:1;text-align:center">'+(w.amount?esc(w.name):"\u2014")+'</span>').join("");
-      wEl.parentElement.appendChild(cap);
+      else {
+        const wParent = wEl.parentElement;
+        _charts.push(new Chart(wEl, {
+          type:"bar",
+          data:{ labels:win.map(w=>moLabel(w.month)),
+            datasets:[{ data:win.map(w=>w.amount),
+              backgroundColor:win.map((w,i)=>CHART_COLORS[i%CHART_COLORS.length]),
+              borderRadius:6 }] },
+          options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false},
+              tooltip:{callbacks:{
+                title:(x)=>win[x[0].dataIndex].month,
+                label:(x)=>{ const w=win[x.dataIndex]; return (w.name||"\u2014")+": "+rupee(w.raw||w.amount); } }} },
+            scales:{ x:{grid:{display:false}}, y:{ticks:{callback:(v)=>rupee(v)}, grid:{color:"#EDE6DB"}} } }
+        }));
+        // category-name annotations under bars
+        const cap = document.createElement("div");
+        cap.style.cssText="display:flex;justify-content:space-around;font-size:10px;color:#9b8f86;margin-top:6px";
+        cap.innerHTML = win.map(w=>'<span style="flex:1;text-align:center">'+(w.amount?esc(w.name):"\u2014")+'</span>').join("");
+        if(wParent) wParent.appendChild(cap);
+      }
     }
 
     // 4) Impulse vs planned per month (stacked bars)
