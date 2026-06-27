@@ -1,6 +1,6 @@
 // sw.js — minimal service worker: caches the app shell so it opens instantly
 // and works offline for viewing. Network is always used for submitting expenses.
-const CACHE = "sharewise-v1";
+const CACHE = "sharewise-v2";
 const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest",
                "./icon-192.png", "./icon-512.png"];
 
