@@ -363,7 +363,7 @@
       const months = st.months||[];
       const totals = months.map((_,j)=> (st.data||[]).reduce((sum,row)=>sum+(row[j]||0),0));
       const ds = (st.categories||[]).map((cat,i)=>({
-        label:cat, data:(st.data[i]||[]),
+        type:"bar", label:cat, data:(st.data[i]||[]),
         backgroundColor:CHART_COLORS[i%CHART_COLORS.length], stack:"s", borderWidth:0
       })).filter(x=>x.data.some(v=>v>0)); // only categories with any spend
       ds.push({ type:"line", label:"Total", data:totals, borderColor:PLUM,
@@ -371,6 +371,7 @@
         tension:0.3, stack:"_none", order:0 });
       if(totals.every(v=>v===0)){ noData(sEl,"No data yet."); }
       else _charts.push(new Chart(sEl, {
+        type:"bar",
         data:{ labels:months.map(moLabel), datasets:ds },
         options:{ responsive:true, maintainAspectRatio:false,
           interaction:{mode:"index",intersect:false},
