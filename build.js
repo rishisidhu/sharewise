@@ -4,11 +4,13 @@
 const fs = require("fs");
 const endpoint = process.env.SHAREWISE_ENDPOINT || "";
 const clientId = process.env.SHAREWISE_CLIENT_ID || "";
+const sheetUrl = process.env.SHAREWISE_SHEET_URL || "";
 const out =
 `window.SHAREWISE_CONFIG = {
   endpoint: ${JSON.stringify(endpoint)},
-  clientId: ${JSON.stringify(clientId)}
+  clientId: ${JSON.stringify(clientId)},
+  sheetUrl: ${JSON.stringify(sheetUrl)}
 };
 `;
 fs.writeFileSync("config.js", out);
-console.log("config.js written. endpoint set:", !!endpoint, "| clientId set:", !!clientId);
+console.log("config.js written. endpoint:", !!endpoint, "| clientId:", !!clientId, "| sheetUrl:", !!sheetUrl);

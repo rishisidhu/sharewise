@@ -1,8 +1,8 @@
 // sw.js — minimal service worker: caches the app shell so it opens instantly
 // and works offline for viewing. Network is always used for submitting expenses.
-const CACHE = "sharewise-v6";
-const SHELL = ["./", "./index.html", "./config.js", "./manifest.webmanifest",
-               "./icon-192.png", "./icon-512.png"];
+const CACHE = "sharewise-v7";
+const SHELL = ["/", "/config.js", "/manifest.webmanifest",
+               "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -26,6 +26,6 @@ self.addEventListener("fetch", (e) => {
       const copy = res.clone();
       caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(()=>{});
       return res;
-    }).catch(()=>caches.match("./index.html")))
+    }).catch(()=>caches.match("/")))
   );
 });

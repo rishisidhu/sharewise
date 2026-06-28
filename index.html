@@ -184,7 +184,8 @@
       <div id="insightsBody">
         <div class="card"><div class="shim" style="width:60%; margin-bottom:10px;"></div><div class="shim" style="width:90%;"></div></div>
       </div>
-      <p class="muted center">Highlights from your sheet. Open the sheet for full analysis.</p>
+      <p class="muted center">Highlights from your sheet.</p>
+      <a id="sheetLink" href="#" target="_blank" rel="noopener" style="display:none; margin:4px auto 0; max-width:260px; padding:12px; border:1px solid var(--line); border-radius:11px; background:#fff; color:var(--plum); font-weight:600; font-size:14px; text-align:center; text-decoration:none;">Open full sheet &amp; analysis &#8599;</a>
     </section>
   </main>
 
@@ -205,6 +206,20 @@
 <script>
   const ENDPOINT  = (window.SHAREWISE_CONFIG && window.SHAREWISE_CONFIG.endpoint)  || "";
   const CLIENT_ID = (window.SHAREWISE_CONFIG && window.SHAREWISE_CONFIG.clientId) || "";
+
+  // Fixed identity per email. Roles ("You"/"Wife") are what gets STORED in the
+  // sheet and must stay constant regardless of who signs in; only the display
+  // NAME changes. Edit names here if you like.
+  const PEOPLE_MAP = {
+    "rishirajsidhu@gmail.com": { role: "You",  name: "Rishi" },
+    "ragini.chaurasia@gmail.com": { role: "Wife", name: "Ragini" }
+  };
+  // role -> display name (built from the map)
+  const ROLE_NAME = { You: "You", Wife: "Wife", Shared: "Shared" };
+  Object.keys(PEOPLE_MAP).forEach(function(e){ ROLE_NAME[PEOPLE_MAP[e].role] = PEOPLE_MAP[e].name; });
+
+  // Google Sheet link (opens in a new tab from the app)
+  const SHEET_URL = (window.SHAREWISE_CONFIG && window.SHAREWISE_CONFIG.sheetUrl) || "";
   let idToken = null;
   let insightsLoaded = false;
   const $ = (id) => document.getElementById(id);
@@ -220,6 +235,8 @@
     const p = decodeJwt(idToken);
     $("avatar").src = p.picture || "";
     $("whoName").textContent = (p.given_name || p.name || "").split(" ")[0];
+    relabelPeople();
+    setupSheetLink();
     $("gate").classList.add("hidden");
     $("app").classList.remove("hidden");
     loadBootstrap();
@@ -246,6 +263,23 @@
   function wireSeg(id){ const grp=$(id); grp.querySelectorAll("button").forEach(b=>{ b.onclick=(e)=>{ e.preventDefault(); grp.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); }; }); return ()=>grp.querySelector("button.on").dataset.v; }
   const getPaidBy = wireSeg("paidBy");
   const getSplit  = wireSeg("split");
+
+  // Relabel the segmented buttons to show real names (value stays the role).
+  function relabelPeople(){
+    ["paidBy","split"].forEach(function(id){
+      $(id).querySelectorAll("button").forEach(function(b){
+        b.textContent = ROLE_NAME[b.dataset.v] || b.dataset.v;
+      });
+    });
+  }
+
+  // Wire the "Open sheet" link if a sheet URL is configured.
+  function setupSheetLink(){
+    const el = $("sheetLink");
+    if(!el) return;
+    if(SHEET_URL){ el.href = SHEET_URL; el.style.display = ""; }
+    else { el.style.display = "none"; }
+  }
   $("impulseRow").addEventListener("click", ()=>{ setTimeout(()=>$("impulseRow").classList.toggle("on",$("impulse").checked),0); });
 
   function switchTab(name){
@@ -292,11 +326,12 @@
     const youOwe = Number(s["settle.you_owe"]||0);
     let settleHtml;
     if(Math.abs(youOwe) < 1) settleHtml = '<div class="v">All square \uD83E\uDD1D</div>';
-    else if(youOwe > 0) settleHtml = '<div class="v">You owe Wife <b>'+inr(youOwe)+'</b></div>';
-    else settleHtml = '<div class="v">Wife owes you <b>'+inr(-youOwe)+'</b></div>';
+    else if(youOwe > 0) settleHtml = '<div class="v">'+ROLE_NAME.You+' owes '+ROLE_NAME.Wife+' <b>'+inr(youOwe)+'</b></div>';
+    else settleHtml = '<div class="v">'+ROLE_NAME.Wife+' owes '+ROLE_NAME.You+' <b>'+inr(-youOwe)+'</b></div>';
 
     const rec = d.recent||[];
-    const recHtml = rec.length ? rec.map(e=>'<div class="tx"><div class="dot"></div><div class="m"><div class="t">'+esc(e.item)+(e.impulse?' <span style="color:#B5739E;font-size:10px">\u00B7 impulse</span>':'')+'</div><div class="s">'+e.date+' \u00B7 '+esc(e.category)+' \u00B7 '+(e.paidBy===e.split?e.paidBy:e.paidBy+"\u2192"+e.split)+'</div></div><div class="a">'+inr(e.amount)+'</div></div>').join("")
+    const roleName = function(x){ return ROLE_NAME[x] || x; };
+    const recHtml = rec.length ? rec.map(e=>'<div class="tx"><div class="dot"></div><div class="m"><div class="t">'+esc(e.item)+(e.impulse?' <span style="color:#B5739E;font-size:10px">\u00B7 impulse</span>':'')+'</div><div class="s">'+e.date+' \u00B7 '+esc(e.category)+' \u00B7 '+(e.paidBy===e.split?roleName(e.paidBy):roleName(e.paidBy)+"\u2192"+roleName(e.split))+'</div></div><div class="a">'+inr(e.amount)+'</div></div>').join("")
       : '<p class="muted">No transactions yet.</p>';
 
     $("insightsBody").innerHTML =
@@ -308,8 +343,8 @@
       '</div>'+
       '<div class="settle"><div class="s">Settle up</div>'+settleHtml+'<div class="s" style="margin-top:6px">Fair share = personal + half of shared</div></div>'+
       '<div class="twosplit">'+
-        '<div class="p"><div class="n">You</div><div class="sub">Paid</div><div class="val paid">'+inr(s["paid.You"])+'</div><div class="sub">Fair share</div><div class="val fair">'+inr(s["borne.You"])+'</div></div>'+
-        '<div class="p"><div class="n">Wife</div><div class="sub">Paid</div><div class="val paid">'+inr(s["paid.Wife"])+'</div><div class="sub">Fair share</div><div class="val fair">'+inr(s["borne.Wife"])+'</div></div>'+
+        '<div class="p"><div class="n">'+ROLE_NAME.You+'</div><div class="sub">Paid</div><div class="val paid">'+inr(s["paid.You"])+'</div><div class="sub">Fair share</div><div class="val fair">'+inr(s["borne.You"])+'</div></div>'+
+        '<div class="p"><div class="n">'+ROLE_NAME.Wife+'</div><div class="sub">Paid</div><div class="val paid">'+inr(s["paid.Wife"])+'</div><div class="sub">Fair share</div><div class="val fair">'+inr(s["borne.Wife"])+'</div></div>'+
       '</div>'+
       '<div class="card"><h2>This month by category</h2><div class="chartbox"><canvas id="chCat"></canvas></div></div>'+
       '<div class="card"><h2>Monthly spend &amp; mix (6 mo)</h2><div class="chartbox"><canvas id="chStack"></canvas></div></div>'+
