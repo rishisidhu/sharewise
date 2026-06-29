@@ -92,8 +92,8 @@
   .sp-inputs{display:flex; gap:10px; margin-bottom:12px;}
   .sp-inputs label{flex:1; display:block;}
   .sp-inputs label > span{display:block; font-size:11px; font-weight:600; margin-bottom:4px;}
-  .sp-inputs label:first-child > span{color:var(--plum);}      /* Rishi = plum */
-  .sp-inputs label:last-child > span{color:var(--gold-deep);}  /* Ragini = gold */
+  .sp-inputs label:first-child > span{color:var(--plum);}      /* you = plum */
+  .sp-inputs label:last-child > span{color:var(--gold-deep);}  /* partner = gold */
   .sp-field{display:flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:9px; background:var(--cream-hi); padding:0 10px;}
   .sp-field .sp-pre{font-style:normal; font-family:var(--serif); color:var(--plum-soft); font-size:15px;}
   .sp-field input{border:none; background:transparent; box-shadow:none !important; font-family:var(--serif); font-size:18px; font-weight:600; color:var(--ink); padding:9px 0;}
@@ -214,10 +214,10 @@
             </div>
           </div>
           <div class="sp-inputs">
-            <label><span id="spYouLab">Rishi</span>
+            <label><span id="spYouLab">You</span>
               <div class="sp-field"><i class="sp-pre" id="spYouPre">₹</i><input id="spYou" type="number" inputmode="decimal" placeholder="0" /></div>
             </label>
-            <label><span id="spWifeLab">Ragini</span>
+            <label><span id="spWifeLab">Partner</span>
               <div class="sp-field"><i class="sp-pre" id="spWifePre">₹</i><input id="spWife" type="number" inputmode="decimal" placeholder="0" /></div>
             </label>
           </div>
@@ -260,14 +260,15 @@
 
   // Fixed identity per email. Roles ("You"/"Wife") are what gets STORED in the
   // sheet and must stay constant regardless of who signs in; only the display
-  // NAME changes. Edit names here if you like.
-  const PEOPLE_MAP = {
-    "rishirajsidhu@gmail.com": { role: "You",  name: "Rishi" },
-    "ragini.chaurasia@gmail.com": { role: "Wife", name: "Ragini" }
-  };
-  // role -> display name (built from the map)
-  const ROLE_NAME = { You: "You", Wife: "Wife", Shared: "Shared" };
-  Object.keys(PEOPLE_MAP).forEach(function(e){ ROLE_NAME[PEOPLE_MAP[e].role] = PEOPLE_MAP[e].name; });
+  // NAME changes. Supplied at build time via the SHAREWISE_PEOPLE env var so
+  // real names/emails aren't committed to the repo. Falls back to generic
+  // labels if not configured.
+  const PEOPLE_MAP = (window.SHAREWISE_CONFIG && window.SHAREWISE_CONFIG.people) || {};
+  // role -> display name (built from the map; defaults to generic labels)
+  const ROLE_NAME = { You: "You", Wife: "Partner", Shared: "Shared" };
+  Object.keys(PEOPLE_MAP).forEach(function(e){
+    if(PEOPLE_MAP[e] && PEOPLE_MAP[e].role) ROLE_NAME[PEOPLE_MAP[e].role] = PEOPLE_MAP[e].name || PEOPLE_MAP[e].role;
+  });
 
   // Google Sheet link (opens in a new tab from the app)
   const SHEET_URL = (window.SHAREWISE_CONFIG && window.SHAREWISE_CONFIG.sheetUrl) || "";

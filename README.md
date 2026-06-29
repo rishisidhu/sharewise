@@ -1,76 +1,86 @@
 # Sharewise
 
-**A private, two-person household expense tracker that lives in your own Google Sheet.**
+A small, private expense tracker for a household of two. Open the app, tap in
+what you spent, and it lands in a shared Google Sheet where the real analysis
+lives — category breakdowns, who-owes-whom, monthly trends, and spending-habit
+insights.
 
-Sharewise is a small Progressive Web App for logging shared household spending. You
-tap in an expense; it's written straight into a private Google Sheet that does the
-real work — categorizing, splitting, and surfacing trends. It's built for a household
-of two who want Splitwise-style tracking without accounts, ads, or their financial
-data leaving their own spreadsheet.
+It's a Splitwise-style entry app with none of the accounts, ads, or data
+leaving your own Google Sheet. You own the data; the app is just a friendly
+front door to it.
 
-## Live demo
+## What it does
 
-**[sharewise-olive.vercel.app](https://sharewise-olive.vercel.app)**
-
-Access is restricted to the two owner accounts, so visitors will land on the Google
-sign-in screen — that's the gatekeeper working as intended.
-
-## Features
-
-- **Quick expense entry** — installable as a PWA, opens full-screen, logs an expense in seconds.
-- **Restricted Google sign-in** — only two allowlisted Google accounts can write; everyone else is turned away.
-- **Your data, your sheet** — entries live in your own private Google Sheet, not in any third-party database.
-- **Automatic analysis** — category breakdown, per-person fair share and settle-up balance, monthly trends, and habit metrics (impulse buys, eating out, quick-commerce orders).
-- **In-app Insights** — a dedicated screen with charts, so you don't have to open the sheet to see where the money went.
+- **Log an expense in seconds** — amount, item, category, who paid, whose
+  expense it is (yours, your partner's, or shared), payment method, and an
+  impulse-buy flag.
+- **Split shared expenses any way you like** — an even 50/50 by default, or a
+  custom split entered in rupees *or* percentages, with a live readout that
+  shows the split always adds up to the total.
+- **See the picture, in-app** — an Insights screen with the month's totals,
+  the running settle-up balance, each person's paid-vs-fair-share, and charts:
+  spend by category, a six-month trend, the top category each month, and
+  impulse-vs-planned spending.
+- **Full analysis in the sheet** — the Google Sheet has a live Dashboard and a
+  Charts tab that go deeper than the app, and update automatically as rows
+  arrive.
+- **Installs like an app** — it's a PWA; add it to your phone's home screen and
+  it opens full-screen.
 
 ## How it works
 
-Sharewise is a thin front end. The sheet does the thinking. The app sends each
-expense, along with a Google identity token, to an Apps Script gatekeeper that
-verifies who you are and enforces the two-person allowlist before appending a row
-to the private sheet.
+Sharewise is a thin front end. The sheet does the thinking.
 
-![Sharewise architecture: PWA to Apps Script gatekeeper to private Google Sheet](docs/architecture.svg)
+```
+   ┌──────────────┐     ┌──────────────────┐     ┌─────────────────────────┐
+   │   The app    │ ──▶ │  Gatekeeper      │ ──▶ │  Private Google Sheet   │
+   │ (log expense)│     │ (checks identity)│     │  (analysis + dashboard) │
+   └──────────────┘     └──────────────────┘     └─────────────────────────┘
+```
 
-## Privacy & security
+1. You log an expense in the app.
+2. A Google Apps Script "gatekeeper" verifies your Google identity, checks it
+   against a two-person allowlist, and appends the row.
+3. The sheet's formulas turn rows into analysis — spend by category, each
+   person's fair share and the running settle-up balance (honouring custom
+   splits), annual projections, and habit metrics.
 
-- **The repository holds code only** — no expenses, no credentials, no sheet identifiers. Reading the source reveals nothing that grants access.
-- **Financial data stays in the owner's private Google Sheet**, behind a Google login.
-- **Only two allowlisted accounts can write.** That rule is enforced server-side by the Apps Script gatekeeper, which checks each request's verified Google identity — not something a reader of this code can fake.
-- The one sensitive value (the Apps Script endpoint) is injected at build time from an environment variable and is never committed.
+## Privacy & access
 
-## Screenshots
+- Only **two specific Google accounts** can write to the sheet. Everyone else is
+  turned away — the rule is enforced server-side, not in this code.
+- **Financial data never lives in this codebase.** It stays in the Google
+  Sheet, behind a Google login. This repository contains the app's code only —
+  no expenses, no credentials. The one sensitive value (the script's URL) is
+  injected at build time from an environment variable and never committed.
 
-<!-- Screenshots are placeholders — actual PNGs to be added to docs/. -->
+So this repo is safe to keep public.
 
-| | |
-|---|---|
-| ![Add expense screen](docs/screenshot-add.png) | ![Insights screen with charts](docs/screenshot-insights.png) |
-| *Add expense* | *Insights & charts* |
+## Install on your phone
 
-![Google Sheet dashboard](docs/screenshot-sheet.png)
+Open the app's web address, sign in with an allowlisted Google account, then add
+it to your home screen:
 
-*Google Sheet dashboard*
-
-## Tech stack
-
-Vanilla HTML/JS Progressive Web App · [Chart.js](https://www.chartjs.org/) for the
-Insights charts · Google Apps Script as the gatekeeper · Google Sheets as the data
-store and analysis engine · deployed on Vercel. No backend server and no database of
-its own.
-
-## Setup
-
-Deployment is documented step by step in **[DEPLOYMENT.md](DEPLOYMENT.md)**. In
-short, four pieces fit together:
-
-1. **Google Sheet** — the database and analysis dashboard.
-2. **Apps Script gatekeeper** — bound to the sheet; verifies identity and enforces the allowlist.
-3. **Google OAuth client** — powers the in-app Google sign-in.
-4. **Vercel** — hosts the PWA and injects configuration at build time.
+- **iPhone (Safari):** Share → Add to Home Screen.
+- **Android (Chrome):** menu ⋮ → Add to Home screen / Install app.
 
 ## Categories
 
-Categories are managed in the sheet's **Settings** tab. Add or rename one there and
-it flows automatically to the app's entry form and to the Insights charts the next
-time you sign in.
+The category list is whatever's in the sheet's **Settings** tab. Add or rename a
+category there and the app picks it up the next time you sign in.
+
+## Tech
+
+Vanilla HTML/CSS/JS (no framework), Chart.js for the in-app charts, Google
+Apps Script as the gatekeeper, Google Sheets as the database and analysis
+engine, deployed on Vercel. No backend server and no database of its own.
+
+## Fork it for your own household
+
+Want your own copy for you and your partner? The full from-scratch setup —
+building the sheet, the gatekeeper script, the Google sign-in credential, and
+the Vercel deploy — is in [`SETUP.md`](./SETUP.md).
+
+---
+
+*A personal project, shared in case it's useful to others.*
