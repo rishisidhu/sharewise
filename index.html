@@ -15,12 +15,21 @@
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --plum:#3D2645; --plum2:#5A3B66; --gold:#C9A227; --gold-deep:#A8851A;
-    --cream:#F7F3EC; --soft:#EDE6DB; --ink:#2B2230; --paper:#FCFAF6;
-    --muted:#9b8f86; --line:#E4DBCD; --ok:#3F7D5A; --err:#A8425B;
-    --radius:14px; --tabbar:64px;
+    /* core */
+    --plum:#3D2645; --plum2:#5A3B66; --plum-soft:#6F5E76; --plum-faint:#9A8AA0;
+    --gold:#C9A227; --gold-deep:#A8851A;
+    --cream:#F7F3EC; --cream-hi:#FFFDF8; --soft:#F1EADD; --paper:#FFFDF8;
+    --ink:#2A1B30; --muted:#7C6B82;
+    --line:#E4DACA;             /* hairline ledger rule */
+    --sage:#4E7A51;             /* confirmed / adds-up */
+    --terra:#B5502F;            /* attention / warning */
+    --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+    --radius:16px; --tabbar:66px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0;}
@@ -32,15 +41,15 @@
 
   #gate{position:fixed; inset:0; background:var(--plum); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; z-index:50;}
   #gate .eyebrow{font-size:12px; letter-spacing:3px; color:var(--gold); font-weight:700;}
-  #gate h1{font-family:Georgia,serif; font-size:40px; margin:8px 0 4px; font-weight:700;}
+  #gate h1{font-family:var(--serif); font-size:40px; margin:8px 0 4px; font-weight:700;}
   #gate p{color:#cbb9d4; font-size:14px; max-width:300px; line-height:1.5; margin:0 0 28px;}
-  #gate .mark{width:64px; height:64px; border-radius:18px; background:var(--gold); color:var(--plum); display:grid; place-items:center; font-family:Georgia,serif; font-weight:700; font-size:32px; margin-bottom:18px; box-shadow:0 8px 24px rgba(0,0,0,.25);}
+  #gate .mark{width:64px; height:64px; border-radius:18px; background:var(--gold); color:var(--plum); display:grid; place-items:center; font-family:var(--serif); font-weight:700; font-size:32px; margin-bottom:18px; box-shadow:0 8px 24px rgba(0,0,0,.25);}
   #gateMsg{margin-top:18px; font-size:13px; color:#e6b8c4; min-height:18px;}
 
   header.bar{ background:var(--plum); color:#fff; padding:calc(env(safe-area-inset-top) + 16px) 18px 14px; }
   .bar-top{max-width:560px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;}
   .bar-top .eyebrow{font-size:11px; letter-spacing:2px; color:var(--gold); font-weight:700;}
-  .bar-top h1{font-family:Georgia,serif; font-size:22px; margin:2px 0 0; font-weight:700;}
+  .bar-top h1{font-family:var(--serif); font-size:22px; margin:2px 0 0; font-weight:700;}
   .who{display:flex; align-items:center; gap:8px; font-size:12px; color:#cbb9d4;}
   .who img{width:30px; height:30px; border-radius:50%; border:2px solid var(--gold);}
   .signout{background:none; border:none; color:#cbb9d4; font-size:11px; text-decoration:underline; cursor:pointer; padding:0;}
@@ -48,44 +57,66 @@
   main{max-width:560px; margin:0 auto; padding:18px 16px calc(var(--tabbar) + env(safe-area-inset-bottom) + 24px);}
   .screen{display:none;} .screen.active{display:block;}
 
-  .card{background:var(--paper); border:1px solid var(--soft); border-radius:var(--radius); padding:18px; margin-bottom:16px;}
-  .card h2{font-family:Georgia,serif; font-size:16px; color:var(--plum); margin:0 0 12px;}
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:14px; box-shadow:0 1px 2px rgba(42,27,48,.04);}
+  .card h2{font-family:var(--serif); font-size:16px; font-weight:600; color:var(--plum); margin:0 0 14px; padding-bottom:10px; border-bottom:1px solid var(--line);}
 
   label.field{display:block; margin-bottom:14px;}
-  label.field > span{display:block; font-size:12px; font-weight:600; color:var(--plum2); margin-bottom:5px;}
-  input,select,textarea{width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background:#fff; font-size:16px; color:var(--ink); outline:none; font-family:inherit;}
-  input:focus,select:focus,textarea:focus{border-color:var(--plum2); box-shadow:0 0 0 3px rgba(90,59,102,.12);}
+  label.field > span{display:block; font-size:12px; font-weight:600; color:var(--plum-soft); margin-bottom:5px;}
+  input,select,textarea{width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:10px; background:var(--cream-hi); font-size:16px; color:var(--ink); outline:none; font-family:inherit;}
+  input:focus,select:focus,textarea:focus{border-color:var(--plum2); box-shadow:0 0 0 3px rgba(90,59,102,.10);}
   textarea{resize:vertical; min-height:48px;}
   .row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 
-  .amount-hero{margin-bottom:16px;}
-  .amount-hero span.lab{font-size:12px; font-weight:600; color:var(--plum2); display:block; margin-bottom:4px;}
-  .amount-wrap{display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:12px; background:#fff; padding:6px 14px;}
-  .amount-wrap:focus-within{border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,39,.15);}
-  .amount-wrap .rs{font-family:Georgia,serif; font-size:30px; color:var(--plum2);}
-  .amount-wrap input{border:none; box-shadow:none !important; font-family:Georgia,serif; font-size:34px; font-weight:700; color:var(--plum); padding:6px 0;}
+  .amount-hero{margin-bottom:18px;}
+  .amount-hero span.lab{font-size:12px; font-weight:600; color:var(--plum-soft); display:block; margin-bottom:4px;}
+  .amount-wrap{display:flex; align-items:baseline; gap:8px; border:none; border-bottom:2px solid var(--gold); border-radius:0; background:transparent; padding:2px 2px 6px;}
+  .amount-wrap:focus-within{box-shadow:none;}
+  .amount-wrap .rs{font-family:var(--serif); font-size:32px; font-weight:400; color:var(--plum-soft);}
+  .amount-wrap input{border:none; box-shadow:none !important; background:transparent; font-family:var(--serif); font-size:40px; font-weight:700; color:var(--plum); padding:0; letter-spacing:-.01em;}
 
   .seg{display:flex; gap:6px;}
-  .seg button{flex:1; padding:10px 4px; border:1px solid var(--line); background:#fff; border-radius:10px; font-size:13px; font-weight:600; color:var(--plum2); cursor:pointer; font-family:inherit;}
+  .seg button{flex:1; padding:11px 4px; border:1px solid var(--line); background:var(--cream-hi); border-radius:10px; font-size:13px; font-weight:600; color:var(--plum-soft); cursor:pointer; font-family:inherit; transition:background .12s,color .12s;}
   .seg button.on{background:var(--plum); color:#fff; border-color:var(--plum);}
   .seg.gold button.on{background:var(--gold); color:var(--ink); border-color:var(--gold-deep);}
 
-  .impulse{display:flex; align-items:center; gap:10px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; cursor:pointer; margin-bottom:6px; background:#fff;}
-  .impulse.on{background:#fbf1d6; border-color:var(--gold);} .impulse input{width:auto;} .impulse span{font-size:14px;}
+  .impulse{display:flex; align-items:center; gap:10px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; cursor:pointer; margin-bottom:6px; background:var(--cream-hi);}
+  .impulse.on{background:#FBF3DA; border-color:var(--gold);} .impulse input{width:auto;} .impulse span{font-size:14px;}
 
-  .submit{width:100%; margin-top:6px; padding:15px; border:none; border-radius:12px; background:var(--plum); color:#fff; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit;}
+  /* split allocation control */
+  .splitpanel{border:1px solid var(--line); border-radius:12px; padding:14px; margin:-4px 0 14px; background:var(--soft);}
+  .sp-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .sp-title{font-size:12px; font-weight:600; color:var(--plum-soft);}
+  .sp-unit{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--cream-hi);}
+  .sp-unit button{border:none; background:transparent; padding:5px 12px; font-size:13px; font-weight:700; color:var(--plum-soft); cursor:pointer; font-family:inherit;}
+  .sp-unit button.on{background:var(--plum); color:#fff;}
+  .sp-inputs{display:flex; gap:10px; margin-bottom:12px;}
+  .sp-inputs label{flex:1; display:block;}
+  .sp-inputs label > span{display:block; font-size:11px; font-weight:600; margin-bottom:4px;}
+  .sp-inputs label:first-child > span{color:var(--plum);}      /* Rishi = plum */
+  .sp-inputs label:last-child > span{color:var(--gold-deep);}  /* Ragini = gold */
+  .sp-field{display:flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:9px; background:var(--cream-hi); padding:0 10px;}
+  .sp-field .sp-pre{font-style:normal; font-family:var(--serif); color:var(--plum-soft); font-size:15px;}
+  .sp-field input{border:none; background:transparent; box-shadow:none !important; font-family:var(--serif); font-size:18px; font-weight:600; color:var(--ink); padding:9px 0;}
+  .sp-bar{display:flex; height:10px; border-radius:6px; overflow:hidden; background:#E7DECF;}
+  .sp-bar-you{background:var(--plum); height:100%; width:50%; transition:width .15s;}
+  .sp-bar-wife{background:var(--gold); height:100%; width:50%; transition:width .15s;}
+  .sp-readout{font-size:12px; margin-top:9px; color:var(--muted); display:flex; align-items:center; gap:6px;}
+  .sp-readout.ok{color:var(--sage); font-weight:600;}
+  .sp-readout.warn{color:var(--terra); font-weight:600;}
+
+  .submit{width:100%; margin-top:6px; padding:16px; border:none; border-radius:12px; background:var(--plum); color:#fff; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit;}
   .submit:disabled{opacity:.55;}
   .submit .spin{width:18px; height:18px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .8s linear infinite;}
   @keyframes sp{to{transform:rotate(360deg);}}
 
-  .kpis{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
-  .kpi{background:var(--paper); border:1px solid var(--soft); border-radius:12px; padding:14px;}
-  .kpi .l{font-size:11px; font-weight:600; color:var(--plum2); letter-spacing:.3px;}
-  .kpi .v{font-family:Georgia,serif; font-size:22px; font-weight:800; color:var(--plum); margin-top:4px;}
+  .kpis{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .kpi{background:var(--paper); border:1px solid var(--line); border-radius:13px; padding:15px;}
+  .kpi .l{font-size:10.5px; font-weight:700; color:var(--plum-soft); letter-spacing:.06em; text-transform:uppercase;}
+  .kpi .v{font-family:var(--serif); font-size:23px; font-weight:700; color:var(--plum); margin-top:5px; letter-spacing:-.01em;}
 
-  .settle{background:var(--plum); color:#fff; border-radius:14px; padding:16px; text-align:center; margin-bottom:16px;}
-  .settle .s{font-size:12px; color:#cbb9d4;} .settle .v{font-family:Georgia,serif; font-size:20px; font-weight:800; margin-top:4px;}
-  .settle .v b{color:var(--gold);}
+  .settle{background:var(--plum); color:#fff; border-radius:15px; padding:18px; text-align:center; margin-bottom:14px;}
+  .settle .s{font-size:12px; color:#C9B8D0;} .settle .v{font-family:var(--serif); font-size:21px; font-weight:700; margin-top:5px;}
+  .settle .v b{color:var(--gold); font-weight:700;}
 
   .bar-row{margin-bottom:11px;}
   .bar-row .top{display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;}
@@ -103,7 +134,7 @@
   .twosplit .p{flex:1; background:var(--paper); border:1px solid var(--soft); border-radius:12px; padding:14px;}
   .twosplit .p .n{font-size:13px; font-weight:700; color:var(--plum2);}
   .twosplit .p .sub{font-size:11px; color:var(--muted); margin-top:8px;}
-  .twosplit .p .val{font-family:Georgia,serif; font-size:18px; font-weight:800;}
+  .twosplit .p .val{font-family:var(--serif); font-size:18px; font-weight:800;}
   .twosplit .p .paid{color:var(--plum);} .twosplit .p .fair{color:var(--gold-deep);}
 
   .tx{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--soft);}
@@ -112,7 +143,7 @@
   .tx .m{flex:1; min-width:0;}
   .tx .m .t{font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .tx .m .s{font-size:11.5px; color:var(--muted);}
-  .tx .a{font-family:Georgia,serif; font-weight:700; color:var(--plum);}
+  .tx .a{font-family:var(--serif); font-weight:700; color:var(--plum);}
 
   .muted{color:var(--muted); font-size:13px;}
   .center{text-align:center;}
@@ -130,7 +161,7 @@
 
   #toast{position:fixed; left:50%; bottom:calc(var(--tabbar) + env(safe-area-inset-bottom) + 16px); transform:translateX(-50%) translateY(20px); background:var(--plum); color:#fff; padding:13px 20px; border-radius:12px; font-size:14px; font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:.25s; z-index:60; max-width:90vw; text-align:center;}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
-  #toast.ok{background:var(--ok);} #toast.err{background:var(--err);}
+  #toast.ok{background:var(--sage);} #toast.err{background:var(--terra);}
 </style>
 </head>
 <body>
@@ -173,6 +204,26 @@
         </div>
         <label class="field"><span>Who paid?</span><div class="seg" id="paidBy"><button data-v="You">You</button><button data-v="Wife">Wife</button><button data-v="Shared" class="on">Shared</button></div></label>
         <label class="field"><span>Whose expense? (split)</span><div class="seg gold" id="split"><button data-v="You">You</button><button data-v="Wife">Wife</button><button data-v="Shared" class="on">Shared</button></div></label>
+
+        <div id="splitPanel" class="splitpanel" style="display:none;">
+          <div class="sp-head">
+            <span class="sp-title">How is it split?</span>
+            <div class="sp-unit" id="spUnit">
+              <button type="button" data-u="amount" class="on">₹</button>
+              <button type="button" data-u="percent">%</button>
+            </div>
+          </div>
+          <div class="sp-inputs">
+            <label><span id="spYouLab">Rishi</span>
+              <div class="sp-field"><i class="sp-pre" id="spYouPre">₹</i><input id="spYou" type="number" inputmode="decimal" placeholder="0" /></div>
+            </label>
+            <label><span id="spWifeLab">Ragini</span>
+              <div class="sp-field"><i class="sp-pre" id="spWifePre">₹</i><input id="spWife" type="number" inputmode="decimal" placeholder="0" /></div>
+            </label>
+          </div>
+          <div class="sp-bar"><div class="sp-bar-you" id="spBarYou"></div><div class="sp-bar-wife" id="spBarWife"></div></div>
+          <div class="sp-readout" id="spReadout">Defaults to an even 50 / 50 split.</div>
+        </div>
         <label class="impulse" id="impulseRow"><input id="impulse" type="checkbox" /><span>Impulse buy?</span></label>
         <label class="field" style="margin-top:14px;"><span>Notes (optional)</span><textarea id="notes" placeholder="anything worth remembering"></textarea></label>
         <button class="submit" id="save">Add expense</button>
@@ -260,18 +311,91 @@
     $("app").classList.add("hidden"); $("gate").classList.remove("hidden");
   };
 
-  function wireSeg(id){ const grp=$(id); grp.querySelectorAll("button").forEach(b=>{ b.onclick=(e)=>{ e.preventDefault(); grp.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); }; }); return ()=>grp.querySelector("button.on").dataset.v; }
+  function wireSeg(id){ const grp=$(id); grp.querySelectorAll("button").forEach(b=>{ b.onclick=(e)=>{ e.preventDefault(); grp.querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); if(id==="split") onSplitChange(); }; }); return ()=>grp.querySelector("button.on").dataset.v; }
   const getPaidBy = wireSeg("paidBy");
   const getSplit  = wireSeg("split");
 
-  // Relabel the segmented buttons to show real names (value stays the role).
+  // Relabel the segmented buttons + split panel to show real names.
   function relabelPeople(){
     ["paidBy","split"].forEach(function(id){
       $(id).querySelectorAll("button").forEach(function(b){
         b.textContent = ROLE_NAME[b.dataset.v] || b.dataset.v;
       });
     });
+    $("spYouLab").textContent  = ROLE_NAME.You  || "You";
+    $("spWifeLab").textContent = ROLE_NAME.Wife || "Wife";
   }
+
+  // ----- split allocation control -----
+  let spUnit = "amount"; // "amount" | "percent"
+  function onSplitChange(){
+    const isShared = getSplit() === "Shared";
+    $("splitPanel").style.display = isShared ? "" : "none";
+    if(isShared) recomputeSplit();
+  }
+  // unit toggle
+  $("spUnit").querySelectorAll("button").forEach(function(b){
+    b.onclick = function(){
+      $("spUnit").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); spUnit = b.dataset.u;
+      const pre = spUnit==="amount" ? "\u20B9" : "%";
+      $("spYouPre").textContent = pre; $("spWifePre").textContent = pre;
+      // clear inputs on unit switch to avoid confusion
+      $("spYou").value = ""; $("spWife").value = "";
+      recomputeSplit();
+    };
+  });
+  // when you type one side, auto-fill the other so it always sums to the total
+  $("spYou").addEventListener("input", function(){ autoFill("you"); });
+  $("spWife").addEventListener("input", function(){ autoFill("wife"); });
+  function autoFill(edited){
+    const total = Number($("amount").value) || 0;
+    if(spUnit==="amount" && total>0){
+      if(edited==="you"){ const y=Number($("spYou").value); if($("spYou").value!=="") $("spWife").value = Math.max(0, Math.round((total-y)*100)/100); }
+      else { const w=Number($("spWife").value); if($("spWife").value!=="") $("spYou").value = Math.max(0, Math.round((total-w)*100)/100); }
+    } else if(spUnit==="percent"){
+      if(edited==="you"){ const y=Number($("spYou").value); if($("spYou").value!=="") $("spWife").value = Math.max(0, Math.round((100-y)*100)/100); }
+      else { const w=Number($("spWife").value); if($("spWife").value!=="") $("spYou").value = Math.max(0, Math.round((100-w)*100)/100); }
+    }
+    recomputeSplit();
+  }
+  // returns {youAmt, wifeAmt, custom:bool} in rupees, or null if default 50/50
+  function splitAmounts(){
+    const total = Number($("amount").value) || 0;
+    const yRaw = $("spYou").value, wRaw = $("spWife").value;
+    if(yRaw==="" && wRaw==="") return null; // untouched = default 50/50
+    let youAmt, wifeAmt;
+    if(spUnit==="amount"){ youAmt=Number(yRaw)||0; wifeAmt=Number(wRaw)||0; }
+    else { youAmt=Math.round(total*(Number(yRaw)||0))/100; wifeAmt=Math.round(total*(Number(wRaw)||0))/100; }
+    return { youAmt:youAmt, wifeAmt:wifeAmt, total:total };
+  }
+  function recomputeSplit(){
+    const total = Number($("amount").value) || 0;
+    const s = splitAmounts();
+    const by=$("spBarYou"), bw=$("spBarWife"), out=$("spReadout");
+    if(!s){ // default
+      by.style.width="50%"; bw.style.width="50%";
+      out.className="sp-readout"; out.textContent="Defaults to an even 50 / 50 split.";
+      return;
+    }
+    const sum = s.youAmt + s.wifeAmt;
+    const denom = sum>0 ? sum : 1;
+    by.style.width = (s.youAmt/denom*100)+"%";
+    bw.style.width = (s.wifeAmt/denom*100)+"%";
+    const yName=ROLE_NAME.You, wName=ROLE_NAME.Wife;
+    const line = "\u20B9"+Math.round(s.youAmt).toLocaleString("en-IN")+" "+yName+" \u00B7 \u20B9"+Math.round(s.wifeAmt).toLocaleString("en-IN")+" "+wName;
+    if(total>0 && Math.abs(sum-total) <= 1){
+      out.className="sp-readout ok"; out.textContent="\u2713 "+line+" \u00B7 \u20B9"+Math.round(total).toLocaleString("en-IN")+" accounted";
+    } else if(total>0){
+      const diff = total - sum;
+      out.className="sp-readout warn";
+      out.textContent = line + " \u00B7 \u20B9"+Math.round(Math.abs(diff)).toLocaleString("en-IN")+(diff>0?" short":" over");
+    } else {
+      out.className="sp-readout"; out.textContent=line;
+    }
+  }
+  // recompute split bar when the main amount changes (percent mode depends on it)
+  // (amount input wired further down; we also call recomputeSplit there)
 
   // Wire the "Open sheet" link if a sheet URL is configured.
   function setupSheetLink(){
@@ -281,6 +405,8 @@
     else { el.style.display = "none"; }
   }
   $("impulseRow").addEventListener("click", ()=>{ setTimeout(()=>$("impulseRow").classList.toggle("on",$("impulse").checked),0); });
+  $("amount").addEventListener("input", function(){ if(getSplit()==="Shared") recomputeSplit(); });
+  onSplitChange(); // initialize panel visibility (Shared is default)
 
   function switchTab(name){
     document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -481,7 +607,19 @@
     const item = $("item").value.trim();
     if(!amount||amount<=0){ toast("Enter an amount","err"); $("amount").focus(); return; }
     if(!item){ toast("What was it?","err"); $("item").focus(); return; }
-    const payload = { idToken, date:$("date").value, item, category:$("category").value, amount, paidBy:getPaidBy(), split:getSplit(), payment:$("payment").value, impulse:$("impulse").checked, notes:$("notes").value.trim() };
+    const split = getSplit();
+    const payload = { idToken, date:$("date").value, item, category:$("category").value, amount, paidBy:getPaidBy(), split:split, payment:$("payment").value, impulse:$("impulse").checked, notes:$("notes").value.trim() };
+    // custom split (only for Shared, only if entered)
+    if(split === "Shared"){
+      const sp = splitAmounts();
+      if(sp){
+        const sum = sp.youAmt + sp.wifeAmt;
+        if(Math.abs(sum - amount) > 1){
+          toast("Split doesn't add up to "+inr(amount),"err"); return;
+        }
+        payload.youAmt = sp.youAmt; payload.wifeAmt = sp.wifeAmt;
+      }
+    }
     const btn=$("save"); btn.disabled=true; btn.innerHTML='<span class="spin"></span> Saving\u2026';
     try{
       const r = await fetch(ENDPOINT, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:JSON.stringify(payload) });
@@ -489,6 +627,7 @@
       if(data && data.ok){
         toast("Added "+inr(amount),"ok");
         $("amount").value=""; $("item").value=""; $("notes").value=""; $("impulse").checked=false; $("impulseRow").classList.remove("on");
+        $("spYou").value=""; $("spWife").value=""; recomputeSplit();
         $("amount").focus();
         insightsLoaded=false; window.__last=null;
       } else {
