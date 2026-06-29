@@ -27,6 +27,17 @@ front door to it.
 - **Installs like an app** — it's a PWA; add it to your phone's home screen and
   it opens full-screen.
 
+## Screenshots
+
+![Logging an expense](docs/screenshot-add.png)
+*Logging an expense — amount, category, who paid, and how it's split.*
+
+![In-app insights](docs/screenshot-insights.png)
+*The Insights screen — monthly totals, settle-up balance, and charts.*
+
+![The Google Sheet dashboard](docs/screenshot-sheet.png)
+*The Google Sheet — the live dashboard and analysis behind the app.*
+
 ## How it works
 
 Sharewise is a thin front end. The sheet does the thinking.
